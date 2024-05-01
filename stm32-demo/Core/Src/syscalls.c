@@ -79,13 +79,8 @@ __attribute__((weak)) int _read(int file, char *ptr, int len)
 
 __attribute__((weak)) int _write(int file, char *ptr, int len)
 {
-  (void)file;
-  int DataIdx;
-
-  for (DataIdx = 0; DataIdx < len; DataIdx++)
-  {
-    __io_putchar(*ptr++);
-  }
+  (void)file; (void)ptr; (void)len;
+  // Here should be write implementation. Use UART :)
   return len;
 }
 
