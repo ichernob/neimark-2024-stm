@@ -21,7 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "cpp-code.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -90,7 +90,7 @@ int main(void)
   MX_GPIO_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-
+  const unsigned char text[] = "Hello, stm32 C developer!\r\n";
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -100,6 +100,9 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+    cpp_code_entry_point();
+    HAL_UART_Transmit(&huart1, text, sizeof(text), 100);
+    HAL_Delay(1000);
   }
   /* USER CODE END 3 */
 }
@@ -214,6 +217,7 @@ static void MX_GPIO_Init(void)
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
+  return; // !!! This is very bad hack to prevent problems with QEMU incomplete emulation of STM32 chip
   /* User can add his own implementation to report the HAL error return state */
   __disable_irq();
   while (1)

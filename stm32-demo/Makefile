@@ -57,6 +57,9 @@ Core/Src/system_stm32f1xx.c \
 Core/Src/sysmem.c \
 Core/Src/syscalls.c  
 
+CXX_SOURCES = \
+cpp-code/cpp-code.cpp
+
 # ASM sources
 ASM_SOURCES =  \
 startup_stm32f100xb.s
@@ -73,11 +76,13 @@ PREFIX = arm-none-eabi-
 # either it can be added to the PATH environment variable.
 ifdef GCC_PATH
 CC = $(GCC_PATH)/$(PREFIX)gcc
+CXX = $(GCC_PATH)/$(PREFIX)g++
 AS = $(GCC_PATH)/$(PREFIX)gcc -x assembler-with-cpp
 CP = $(GCC_PATH)/$(PREFIX)objcopy
 SZ = $(GCC_PATH)/$(PREFIX)size
 else
 CC = $(PREFIX)gcc
+CXX = $(PREFIX)g++
 AS = $(PREFIX)gcc -x assembler-with-cpp
 CP = $(PREFIX)objcopy
 SZ = $(PREFIX)size
@@ -119,16 +124,20 @@ C_INCLUDES =  \
 -IDrivers/STM32F1xx_HAL_Driver/Inc \
 -IDrivers/STM32F1xx_HAL_Driver/Inc/Legacy \
 -IDrivers/CMSIS/Device/ST/STM32F1xx/Include \
--IDrivers/CMSIS/Include
+-IDrivers/CMSIS/Include \
+-Icpp-code
 
 
 # compile gcc flags
-ASFLAGS = $(MCU) $(AS_DEFS) $(AS_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections
+ASFLAGS = $(MCU) $(AS_DEFS) $(AS_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections -fno-exceptions
 
-CFLAGS += $(MCU) $(C_DEFS) $(C_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections
+CFLAGS += $(MCU) $(C_DEFS) $(C_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections -lnosys -fno-exceptions
+
+CXXFLAGS += $(MCU) $(C_DEFS) $(C_INCLUDES) $(OPT) -Wall -fdata-sections -ffunction-sections -Wno-register -Wno-psabi -std=c++17 -fno-exceptions
 
 ifeq ($(DEBUG), 1)
 CFLAGS += -g -gdwarf-2
+CXXFLAGS += -g -gdwarf-2
 endif
 
 
@@ -143,9 +152,9 @@ CFLAGS += -MMD -MP -MF"$(@:%.o=%.d)"
 LDSCRIPT = STM32F100RBTx_FLASH.ld
 
 # libraries
-LIBS = -lc -lm -lnosys 
+LIBS = -lc -lm -lnosys -lstdc++
 LIBDIR = 
-LDFLAGS = $(MCU) -specs=nano.specs -T$(LDSCRIPT) $(LIBDIR) $(LIBS) -Wl,-Map=$(BUILD_DIR)/$(TARGET).map,--cref -Wl,--gc-sections
+LDFLAGS = $(MCU) -specs=nano.specs -T$(LDSCRIPT) $(LIBDIR) $(LIBS) -Wl,-Map=$(BUILD_DIR)/$(TARGET).map,--cref -Wl,--gc-sections -fno-exceptions
 
 # default action: build all
 all: $(BUILD_DIR)/$(TARGET).elf $(BUILD_DIR)/$(TARGET).hex $(BUILD_DIR)/$(TARGET).bin
@@ -156,12 +165,19 @@ all: $(BUILD_DIR)/$(TARGET).elf $(BUILD_DIR)/$(TARGET).hex $(BUILD_DIR)/$(TARGET
 #######################################
 # list of objects
 OBJECTS = $(addprefix $(BUILD_DIR)/,$(notdir $(C_SOURCES:.c=.o)))
+OBJECTS += $(addprefix $(BUILD_DIR)/,$(notdir $(CXX_SOURCES:.cpp=.o)))
 vpath %.c $(sort $(dir $(C_SOURCES)))
 # list of ASM program objects
 OBJECTS += $(addprefix $(BUILD_DIR)/,$(notdir $(ASM_SOURCES:.s=.o)))
 vpath %.s $(sort $(dir $(ASM_SOURCES)))
 OBJECTS += $(addprefix $(BUILD_DIR)/,$(notdir $(ASMM_SOURCES:.S=.o)))
 vpath %.S $(sort $(dir $(ASMM_SOURCES)))
+
+build/cpp-code.o: cpp-code/cpp-code.cpp | $(BUILD_DIR)
+	$(CXX) -c $(CXXFLAGS) -Wa,-a,-ad,-alms=$(BUILD_DIR)/$(notdir $(<:.cpp=.lst)) $< -o $@
+
+# $(BUILD_DIR)/%.o: cpp-code/cpp-code.cpp | $(BUILD_DIR)
+# 	$(CXX) -c $(CXXFLAGS) -Wa,-a,-ad,-alms=$(BUILD_DIR)/$(notdir $(<:.cpp=.lst)) $< -o $@
 
 $(BUILD_DIR)/%.o: %.c Makefile | $(BUILD_DIR) 
 	$(CC) -c $(CFLAGS) -Wa,-a,-ad,-alms=$(BUILD_DIR)/$(notdir $(<:.c=.lst)) $< -o $@
