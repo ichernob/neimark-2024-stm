@@ -30,8 +30,15 @@
 #include <sys/time.h>
 #include <sys/times.h>
 
+#include "stm32f1xx_hal.h"
+#include <sys/unistd.h>
+
+extern UART_HandleTypeDef huart1;
 
 /* Variables */
+unsigned int mallocs_count = 0;
+unsigned int frees_count = 0;
+
 extern int __io_putchar(int ch) __attribute__((weak));
 extern int __io_getchar(void) __attribute__((weak));
 
@@ -79,8 +86,17 @@ __attribute__((weak)) int _read(int file, char *ptr, int len)
 
 __attribute__((weak)) int _write(int file, char *ptr, int len)
 {
-  (void)file; (void)ptr; (void)len;
-  // Here should be write implementation. Use UART :)
+  // (void)file; (void)ptr; (void)len;
+  switch(file) {
+    // case 1:
+    case STDOUT_FILENO:
+    case STDERR_FILENO:
+      HAL_UART_Transmit(&huart1, (uint8_t *)ptr, len, 1000);
+      break;
+    default:
+      errno = EBADF;
+      return -1;
+  }
   return len;
 }
 
@@ -168,4 +184,33 @@ int _execve(char *name, char **argv, char **env)
   (void)env;
   errno = ENOMEM;
   return -1;
+}
+
+void __real_free(void *);
+void __wrap_free(void *pv) {
+  // vTaskSuspendAll();
+  __real_free(pv);
+  frees_count += 1;
+  // (void)xTaskResumeAll();
+}
+
+// void __malloc_lock(struct _reent *r)
+// {
+//   vTaskSuspendAll();
+// }
+
+// void __malloc_unlock(struct _reent *r)
+// {
+//   xTaskResumeAll();
+// }
+
+void * __real_malloc(size_t size);
+void * __wrap_malloc (size_t size)
+{
+  void *pvReturn;
+  // vTaskSuspendAll();
+  pvReturn = __real_malloc (size);
+  mallocs_count += 1;
+  // (void)xTaskResumeAll();
+  return pvReturn;
 }

@@ -24,6 +24,8 @@
 #include <errno.h>
 #include <stdint.h>
 
+unsigned int sbrks_count = 0;
+
 /**
  * Pointer to the current high watermark of the heap usage
  */
@@ -74,6 +76,8 @@ void *_sbrk(ptrdiff_t incr)
 
   prev_heap_end = __sbrk_heap_end;
   __sbrk_heap_end += incr;
+
+  sbrks_count += 1;
 
   return (void *)prev_heap_end;
 }

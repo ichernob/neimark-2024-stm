@@ -120,6 +120,7 @@ AS_INCLUDES =
 
 # C includes
 C_INCLUDES =  \
+-I/usr/include/newlib \
 -ICore/Inc \
 -IDrivers/STM32F1xx_HAL_Driver/Inc \
 -IDrivers/STM32F1xx_HAL_Driver/Inc/Legacy \
@@ -155,6 +156,7 @@ LDSCRIPT = STM32F100RBTx_FLASH.ld
 LIBS = -lc -lm -lnosys -lstdc++
 LIBDIR = 
 LDFLAGS = $(MCU) -specs=nano.specs -T$(LDSCRIPT) $(LIBDIR) $(LIBS) -Wl,-Map=$(BUILD_DIR)/$(TARGET).map,--cref -Wl,--gc-sections -fno-exceptions
+LDFLAGS += -Wl,--wrap=malloc,--wrap=free
 
 # default action: build all
 all: $(BUILD_DIR)/$(TARGET).elf $(BUILD_DIR)/$(TARGET).hex $(BUILD_DIR)/$(TARGET).bin
